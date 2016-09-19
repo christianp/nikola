@@ -123,12 +123,14 @@ class Post(object):
         self.metadata_path = self.post_name + ".meta"  # posts/blah.meta
         self.folder_relative = destination
         self.folder_base = destination_base
-        if self.folder_base is not None:
+        self.default_lang = self.config['DEFAULT_LANG']
+        if self.folder_base is None:
+            self.folder = destination
+        elif isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
             self.folder = os.path.normpath(os.path.join(self.folder_base, self.folder_relative))
         else:
-            self.folder = destination
+            self.folder = os.path.normpath(os.path.join(self.folder_base(self.default_lang), self.folder_relative))
         self.translations = self.config['TRANSLATIONS']
-        self.default_lang = self.config['DEFAULT_LANG']
         self.messages = messages
         self.skip_untranslated = not self.config['SHOW_UNTRANSLATED_POSTS']
         self._template_name = template_name
@@ -776,8 +778,10 @@ class Post(object):
             folder = self.folder
         else:
             folder = self.meta[lang].get('path', self.folder_relative)
-            if self.folder_base is not None:
+            if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
                 folder = os.path.normpath(os.path.join(self.folder_base, folder))
+            elif self.folder_base is not None:
+                folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
         if self._has_pretty_url(lang):
             path = os.path.join(self.translations[lang],
                                 folder, self.meta[lang]['slug'], 'index' + extension)
@@ -856,8 +860,10 @@ class Post(object):
 
         pieces = self.translations[lang].split(os.sep)
         folder = self.meta[lang].get('path', self.folder_relative)
-        if self.folder_base is not None:
+        if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
             folder = os.path.normpath(os.path.join(self.folder_base, folder))
+        elif self.folder_base is not None:
+            folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
         pieces += folder.split(os.sep)
         if self._has_pretty_url(lang):
             pieces += [self.meta[lang]['slug'], 'index' + extension]
