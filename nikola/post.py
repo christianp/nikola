@@ -772,9 +772,10 @@ class Post(object):
         """
         if lang is None:
             lang = nikola.utils.LocaleBorg().current_lang
-        folder = self.folder
-        if not _force_source:
-            folder = self.meta[lang].get('path', folder)
+        if _force_source:
+            folder = self.folder
+        else:
+            folder = self.meta[lang].get('path', self.folder_relative)
             if self.folder_base is not None:
                 folder = os.path.normpath(os.path.join(self.folder_base, folder))
         if self._has_pretty_url(lang):
@@ -854,7 +855,7 @@ class Post(object):
             extension = self.compiler.extension()
 
         pieces = self.translations[lang].split(os.sep)
-        folder = self.meta[lang].get('path', self.folder)
+        folder = self.meta[lang].get('path', self.folder_relative)
         if self.folder_base is not None:
             folder = os.path.normpath(os.path.join(self.folder_base, folder))
         pieces += folder.split(os.sep)
