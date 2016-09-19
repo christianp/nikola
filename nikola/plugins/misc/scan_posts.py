@@ -55,8 +55,7 @@ class ScanPosts(PostScanner):
                 print(".", end='', file=sys.stderr)
             dirname = os.path.dirname(wildcard)
             for dirpath, _, _ in os.walk(dirname, followlinks=True):
-                dest_dir = os.path.normpath(os.path.join(destination,
-                                            os.path.relpath(dirpath, dirname)))  # output/destination/foo/
+                rel_dest_dir = os.path.relpath(dirpath, dirname)
                 # Get all the untranslated paths
                 dir_glob = os.path.join(dirpath, os.path.basename(wildcard))  # posts/foo/*.rst
                 untranslated = glob.glob(dir_glob)
@@ -90,11 +89,12 @@ class ScanPosts(PostScanner):
                     post = Post(
                         base_path,
                         self.site.config,
-                        dest_dir,
+                        rel_dest_dir,
                         use_in_feeds,
                         self.site.MESSAGES,
                         template_name,
-                        self.site.get_compiler(base_path)
+                        self.site.get_compiler(base_path),
+                        destination_base=destination
                     )
                     timeline.append(post)
 

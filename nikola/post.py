@@ -87,7 +87,8 @@ class Post(object):
         use_in_feeds,
         messages,
         template_name,
-        compiler
+        compiler,
+        destination_base=None
     ):
         """Initialize post.
 
@@ -120,7 +121,12 @@ class Post(object):
         # cache/posts/blah.html
         self._base_path = self.base_path.replace('\\', '/')
         self.metadata_path = self.post_name + ".meta"  # posts/blah.meta
-        self.folder = destination
+        self.folder_relative = destination
+        self.folder_base = destination_base
+        if self.folder_base is not None:
+            self.folder = os.path.normpath(os.path.join(self.folder_base, self.folder_relative))
+        else:
+            self.folder = destination
         self.translations = self.config['TRANSLATIONS']
         self.default_lang = self.config['DEFAULT_LANG']
         self.messages = messages
@@ -754,11 +760,11 @@ class Post(object):
     def source_link(self, lang=None):
         """Return absolute link to the post's source."""
         ext = self.source_ext(True)
-        link = "/" + self.destination_path(lang=lang, extension=ext, sep='/')
+        link = "/" + self.destination_path(lang=lang, extension=ext, sep='/', _force_source=True)
         link = utils.encodelink(link)
         return link
 
-    def destination_path(self, lang=None, extension='.html', sep=os.sep):
+    def destination_path(self, lang=None, extension='.html', sep=os.sep, _force_source=False):
         """Destination path for this post, relative to output/.
 
         If lang is not specified, it's the current language.
@@ -766,12 +772,17 @@ class Post(object):
         """
         if lang is None:
             lang = nikola.utils.LocaleBorg().current_lang
+        folder = self.folder
+        if not _force_source:
+            folder = self.meta[lang].get('path', folder)
+            if self.folder_base is not None:
+                folder = os.path.normpath(os.path.join(self.folder_base, folder))
         if self._has_pretty_url(lang):
             path = os.path.join(self.translations[lang],
-                                self.folder, self.meta[lang]['slug'], 'index' + extension)
+                                folder, self.meta[lang]['slug'], 'index' + extension)
         else:
             path = os.path.join(self.translations[lang],
-                                self.folder, self.meta[lang]['slug'] + extension)
+                                folder, self.meta[lang]['slug'] + extension)
         if sep != os.sep:
             path = path.replace(os.sep, sep)
         if path.startswith('./'):
@@ -843,7 +854,10 @@ class Post(object):
             extension = self.compiler.extension()
 
         pieces = self.translations[lang].split(os.sep)
-        pieces += self.folder.split(os.sep)
+        folder = self.meta[lang].get('path', self.folder)
+        if self.folder_base is not None:
+            folder = os.path.normpath(os.path.join(self.folder_base, folder))
+        pieces += folder.split(os.sep)
         if self._has_pretty_url(lang):
             pieces += [self.meta[lang]['slug'], 'index' + extension]
         else:
