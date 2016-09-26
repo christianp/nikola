@@ -762,11 +762,11 @@ class Post(object):
     def source_link(self, lang=None):
         """Return absolute link to the post's source."""
         ext = self.source_ext(True)
-        link = "/" + self.destination_path(lang=lang, extension=ext, sep='/', _force_source=True)
+        link = "/" + self.destination_path(lang=lang, extension=ext, sep='/')
         link = utils.encodelink(link)
         return link
 
-    def destination_path(self, lang=None, extension='.html', sep=os.sep, _force_source=False):
+    def destination_path(self, lang=None, extension='.html', sep=os.sep):
         """Destination path for this post, relative to output/.
 
         If lang is not specified, it's the current language.
@@ -774,14 +774,11 @@ class Post(object):
         """
         if lang is None:
             lang = nikola.utils.LocaleBorg().current_lang
-        if _force_source:
-            folder = self.folder
-        else:
-            folder = self.meta[lang].get('path', self.folder_relative)
-            if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
-                folder = os.path.normpath(os.path.join(self.folder_base, folder))
-            elif self.folder_base is not None:
-                folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
+        folder = self.meta[lang].get('path', self.folder_relative)
+        if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
+            folder = os.path.normpath(os.path.join(self.folder_base, folder))
+        elif self.folder_base is not None:
+            folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
         if self._has_pretty_url(lang):
             path = os.path.join(self.translations[lang],
                                 folder, self.meta[lang]['slug'], 'index' + extension)
