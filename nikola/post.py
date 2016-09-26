@@ -124,12 +124,6 @@ class Post(object):
         self.folder_relative = destination
         self.folder_base = destination_base
         self.default_lang = self.config['DEFAULT_LANG']
-        if self.folder_base is None:
-            self.folder = destination
-        elif isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
-            self.folder = os.path.normpath(os.path.join(self.folder_base, self.folder_relative))
-        else:
-            self.folder = os.path.normpath(os.path.join(self.folder_base(self.default_lang), self.folder_relative))
         self.translations = self.config['TRANSLATIONS']
         self.messages = messages
         self.skip_untranslated = not self.config['SHOW_UNTRANSLATED_POSTS']
@@ -168,6 +162,14 @@ class Post(object):
             # Fill default_metadata with stuff from the other languages
             for lang in sorted(self.translated_to):
                 default_metadata.update(self.meta[lang])
+
+        # Find paths from metadata
+        self.folders = {lang: self.meta[lang].get('path', self.folder_relative) for lang in self.config['TRANSLATIONS'].keys()}
+        if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
+            self.folders = {lang: os.path.normpath(os.path.join(self.folder_base, folder)) for lang, folder in self.folders.items()}
+        elif self.folder_base is not None:
+            self.folders = {lang: os.path.normpath(os.path.join(self.folder_base(lang), folder)) for lang, folder in self.folders.items()}
+        self.folder = self.folders[self.default_lang]
 
         # Load data field from metadata
         self.data = Functionary(lambda: None, self.default_lang)
@@ -774,11 +776,7 @@ class Post(object):
         """
         if lang is None:
             lang = nikola.utils.LocaleBorg().current_lang
-        folder = self.meta[lang].get('path', self.folder_relative)
-        if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
-            folder = os.path.normpath(os.path.join(self.folder_base, folder))
-        elif self.folder_base is not None:
-            folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
+        folder = self.folders[lang]
         if self._has_pretty_url(lang):
             path = os.path.join(self.translations[lang],
                                 folder, self.meta[lang]['slug'], 'index' + extension)
@@ -856,11 +854,7 @@ class Post(object):
             extension = self.compiler.extension()
 
         pieces = self.translations[lang].split(os.sep)
-        folder = self.meta[lang].get('path', self.folder_relative)
-        if isinstance(self.folder_base, (utils.bytes_str, utils.unicode_str)):
-            folder = os.path.normpath(os.path.join(self.folder_base, folder))
-        elif self.folder_base is not None:
-            folder = os.path.normpath(os.path.join(self.folder_base(lang), folder))
+        folder = self.folders[lang]
         pieces += folder.split(os.sep)
         if self._has_pretty_url(lang):
             pieces += [self.meta[lang]['slug'], 'index' + extension]
